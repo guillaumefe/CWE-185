@@ -1,0 +1,175 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
+
+const RegexVulnerabilitySimulation = () => {
+  const [phase, setPhase] = useState(0);
+  
+  const phases = [
+    {
+      title: "1. État Normal",
+      description: "Un serveur web vérifie les adresses email avec une expression régulière mal conçue:",
+      code: `/^[a-zA-Z0-9._%+-]+
+@[a-zA-Z0-9.-]+
+\\.[a-zA-Z]{2,}$/`,
+      example: "user@exemple.com ✓",
+      impact: "Le serveur répond normalement",
+      serverLoad: 10,
+      visualization: {
+        users: 1,
+        server: "normal",
+        response: "200ms"
+      }
+    },
+    {
+      title: "2. Le Problème",
+      description: "Cette regex peut créer un effet 'backtracking' avec trop de points dans le domaine",
+      code: "test@a.........b.com",
+      example: "Chaque point supplémentaire double le temps de traitement!",
+      impact: "Le serveur met plus de temps à répondre",
+      serverLoad: 30,
+      visualization: {
+        users: 1,
+        server: "slow",
+        response: "2s"
+      }
+    },
+    {
+      title: "3. L'Attaque",
+      description: "Un attaquant envoie plusieurs emails avec beaucoup de points",
+      code: "test@a....................b.com",
+      example: "×100 requêtes simultanées",
+      impact: "Le serveur est surchargé!",
+      serverLoad: 100,
+      visualization: {
+        users: 100,
+        server: "overload",
+        response: "timeout"
+      }
+    },
+    {
+      title: "4. La Solution",
+      description: "On améliore la regex et on ajoute des protections:",
+      code: `// Nouvelle regex plus sûre
+/^[^@\\s]+
+@(?![.\\s])[^.\\s]+
+(?:\\.[^.\\s]+)*$/
+
+// Limites de sécurité
+maxLength = 254
+timeout = 500ms`,
+      example: "L'attaque est bloquée ✓",
+      impact: "Le serveur est protégé",
+      serverLoad: 15,
+      visualization: {
+        users: 100,
+        server: "protected",
+        response: "300ms"
+      }
+    }
+  ];
+
+  const ServerVisualization = ({ data }) => {
+    const { users, server, response } = data;
+    const userIcons = Array(Math.min(users, 5)).fill('👤');
+    const moreUsers = users > 5 ? `+${users - 5}` : '';
+    
+    return (
+      <div className="flex flex-col items-center space-y-8 p-8">
+        <div className="flex items-center space-x-2">
+          {userIcons}{moreUsers && <span className="text-white">{moreUsers}</span>}
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <ArrowRight className="text-white" />
+          <div className={`w-32 h-32 rounded-lg flex items-center justify-center ${
+            server === 'normal' ? 'bg-green-600' :
+            server === 'slow' ? 'bg-yellow-600' :
+            server === 'overload' ? 'bg-red-600' :
+            'bg-blue-600'
+          }`}>
+            <span className="text-4xl">
+              {server === 'normal' ? '🖥️' :
+               server === 'slow' ? '⚠️' :
+               server === 'overload' ? '💥' :
+               '🛡️'}
+            </span>
+          </div>
+          <ArrowRight className="text-white" />
+        </div>
+
+        <div className="text-white text-xl">
+          Réponse: {response}
+        </div>
+        
+        <div className="w-full bg-gray-700 rounded-full h-4">
+          <div 
+            className={`rounded-full h-4 ${
+              server === 'normal' ? 'bg-green-500' :
+              server === 'slow' ? 'bg-yellow-500' :
+              server === 'overload' ? 'bg-red-500' :
+              'bg-blue-500'
+            }`}
+            style={{ width: `${data.serverLoad}%` }}
+          />
+        </div>
+        <div className="text-white">
+          Charge CPU: {phases[phase].serverLoad}%
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full max-w-4xl">
+      <Card className="bg-slate-900">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              {phases[phase].title}
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setPhase(Math.max(0, phase - 1))}
+                disabled={phase === 0}
+              >
+                Précédent
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setPhase(Math.min(phases.length - 1, phase + 1))}
+                disabled={phase === phases.length - 1}
+              >
+                Suivant
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <Card className="bg-black p-4">
+                <p className="text-white mb-4">{phases[phase].description}</p>
+                <pre className="text-green-400 font-mono text-sm mb-4 p-2 bg-gray-900 rounded whitespace-pre-wrap break-all">
+                  {phases[phase].code}
+                </pre>
+                <p className="text-yellow-400">{phases[phase].example}</p>
+                <p className="text-red-400 mt-4">{phases[phase].impact}</p>
+              </Card>
+            </div>
+            <Card className="bg-black">
+              <ServerVisualization data={phases[phase].visualization} />
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default RegexVulnerabilitySimulation;
